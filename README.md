@@ -98,11 +98,20 @@ Figure 6 retains its original left/right label annotations. For the documented c
 
 ### 04 · Inspect the molar in 3D
 
-<p align="center">
-  <a href="./fig7-3d-molar-furcation.png"><img src="./fig7-3d-molar-furcation.png" alt="3D UR6 tooth mesh for case170, showing the pipeline furcation point in red, the dashed long axis, and x, y, z coordinates in millimetres" width="1000"></a>
-</p>
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <a href="./fig7-3d-molar-furcation.png"><img src="./fig7-3d-molar-furcation.png" alt="3D UR6 tooth mesh for case170 with the red furcation point, dashed long axis, and a coordinate tooltip" width="480"></a><br>
+      <sub><b>Figure 7 · Furcation coordinates</b><br>3D molar view with the landmark tooltip.</sub>
+    </td>
+    <td align="center" width="50%">
+      <a href="./fig9-3d-molar-alternate-view.png"><img src="./fig9-3d-molar-alternate-view.png" alt="Alternate 3D view of the UR6 molar for case170, showing the three-root surface mesh, red furcation point, dashed long axis, and millimetre coordinate axes" width="480"></a><br>
+      <sub><b>Figure 9 · Alternate viewing angle</b><br>A second perspective on the roots and furcation point.</sub>
+    </td>
+  </tr>
+</table>
 
-**Figure 7 · 3D molar and furcation landmark.** The supplied viewer screenshot shows the UR6 surface mesh, the pipeline's furcation point in red, and the dashed long axis. The coordinate tooltip provides the selected point's position in millimetres. This is a static capture of the rotatable 3D view.
+**Figures 7 & 9 · 3D molar and furcation landmark.** Two views of the UR6 surface mesh show the pipeline's furcation point in red and the dashed long axis. Figure 7 includes a coordinate tooltip; Figure 9 shows the tooth from another angle. These are static captures of the rotatable 3D view; click either image to open it at full resolution.
 
 ## How It Works
 
@@ -326,7 +335,7 @@ The batch engine is **crash-safe by design**:
 
 ## Running the Project
 
-**Repository contents:** this public repository currently contains the README files and eight figures/screenshots. The notebook, generated `app.py`, and model weights are not included in this checkout.
+**Repository contents:** this public repository currently contains the README files and nine figures/screenshots. The notebook, generated `app.py`, and model weights are not included in this checkout.
 
 ### Google Colab · direct batch processing
 
@@ -707,7 +716,8 @@ CBCT-Transverse-Basal-Bone-Width-Analysis-3D-image/
 ├── fig5-furcation-diagnostics.png
 ├── fig6-transverse-width-cr.png
 ├── fig7-3d-molar-furcation.png
-└── fig8-streamlit-width-interface.png
+├── fig8-streamlit-width-interface.png
+└── fig9-3d-molar-alternate-view.png
 ```
 
 The figures are stored alongside `README.md`, so the image links use repository-relative paths. Notebook-generated code, scan data, model checkpoints, and result CSVs are separate from this documentation checkout.
@@ -740,7 +750,7 @@ A condensed history from the earlier application revisions, most recent first. T
 - The `relaxed:>=2` fallback (used only when a maxillary molar's roots never resolve into all 3 components) carries a known outward/buccal bias — it is reported per tooth precisely so it can be reviewed rather than trusted silently.
 - `confidence == 'medium'` does **not** mean a problem — it means the independent skeleton cross-check had no root-side branch point to compare against, which is a property of that tooth's skeleton, not of the estimate.
 - Cohort-level agreement statistics (CCC, ICC, Bland–Altman) require ≥3 ground-truth-carrying cases and are not meaningful below that count — see [Validation Philosophy](#validation-philosophy).
-- README figures are static images. The 3D viewer shown in Figure 7 cannot be rotated inside the GitHub README; click the image to inspect the full-resolution screenshot.
+- README figures are static images. The 3D views shown in Figures 7 and 9 cannot be rotated inside the GitHub README; click the image to inspect the full-resolution screenshot.
 
 ---
 
