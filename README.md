@@ -1,89 +1,143 @@
-# 🦷 CBCT Transverse Basal-Bone Width Analysis
+<a id="top"></a>
 
-> **An end-to-end 3D CBCT pipeline: automatic nnU-Net tooth segmentation → PCA-guided first-molar furcation localization → bilateral transverse-width measurement → Yonsei skeletal classification — wrapped in a self-contained Streamlit app.**
+<h1 align="center">🦷 CBCT Transverse<br>Basal-Bone Width Analysis</h1>
 
-[![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)](https://www.python.org/)
-[![PyTorch](https://img.shields.io/badge/PyTorch-CUDA%2012.4-ee4c2c?logo=pytorch)](https://pytorch.org/)
-[![nnU-Net](https://img.shields.io/badge/Segmentation-nnU--Net%20v2-8A2BE2)](https://github.com/MIC-DKFZ/nnUNet)
-[![ToothFairy2](https://img.shields.io/badge/Model-ToothFairy2-3DDC97)](https://zenodo.org/records/14893540)
-[![Streamlit](https://img.shields.io/badge/UI-Streamlit-FF4B4B?logo=streamlit)](https://streamlit.io/)
-[![Google Colab](https://img.shields.io/badge/Runtime-Google%20Colab%20A100-F9AB00?logo=googlecolab)](https://colab.research.google.com/)
-[![Single File](https://img.shields.io/badge/app.py-single--file%20%7C%204%2C545%20lines-333333)](#-code-walkthrough)
+<p align="center">
+  <b>From 3D tooth segmentation to explainable transverse measurements.</b><br>
+  nnU-Net segmentation · PCA-guided furcation localization · Bilateral width analysis
+</p>
 
-<br>
+<p align="center">
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3776AB?style=flat-square&amp;logo=python&amp;logoColor=white" alt="Python"></a>
+  <a href="https://pytorch.org/"><img src="https://img.shields.io/badge/PyTorch-EE4C2C?style=flat-square&amp;logo=pytorch&amp;logoColor=white" alt="PyTorch"></a>
+  <a href="https://github.com/MIC-DKFZ/nnUNet"><img src="https://img.shields.io/badge/nnU--Net-v2-7C3AED?style=flat-square" alt="nnU-Net v2"></a>
+  <a href="https://zenodo.org/records/14893540"><img src="https://img.shields.io/badge/Model-ToothFairy2-0D9488?style=flat-square" alt="ToothFairy2 model"></a>
+  <a href="https://streamlit.io/"><img src="https://img.shields.io/badge/Streamlit-FF4B4B?style=flat-square&amp;logo=streamlit&amp;logoColor=white" alt="Streamlit"></a>
+</p>
 
-## 📋 Contents
+<p align="center">
+  <a href="#pipeline-in-action">Image gallery</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#running-the-project">Getting started</a> ·
+  <a href="#validation-philosophy">Validation</a> ·
+  <a href="#code-walkthrough">Technical details</a>
+</p>
 
-[Demo](#-demo) · [Overview](#overview) · [Key Features](#key-features) · [Pipeline in Action](#-pipeline-in-action) · [Code Walkthrough](#-code-walkthrough) · [Reference Tables](#-reference-tables) · [Running the Project](#running-the-project) · [Streamlit Interface](#streamlit-interface) · [Validation Philosophy](#validation-philosophy) · [Engineering Log](#-engineering-log) · [Limitations](#-limitations--honest-caveats) · [Project Structure](#project-structure) · [Author](#author)
+<p align="center">
+  <a href="./fig6-transverse-width-cr.png">
+    <img src="./fig6-transverse-width-cr.png" alt="Example maxillary measurement: two first-molar masks with furcation-based CR points joined by a line, reporting 39.56 mm" width="820">
+  </a>
+  <br>
+  <sub><b>Figure 6 · A measurement you can inspect.</b> Example maxillary width: <b>39.56 mm</b>. Pink stars mark the estimated furcation-based CR points.</sub>
+</p>
 
----
-
-## 🎥 Demo
-
-**Interface demonstration:**
-_Add your demo video here (`docs/demo.mp4`)._
-
-A strong 60–90 second screen recording for a portfolio would cover:
-
-```text
-0:00 — Upload CBCT (.nii / .nii.gz / DICOM zip)
-0:10 — Run analysis (nnU-Net segmentation progress)
-0:20 — Full-mask restoration to the original CBCT grid
-0:35 — Maxillary + mandibular transverse widths
-0:45 — Yonsei Transverse Index + skeletal classification
-0:55 — Per-tooth confidence, root count, and furcation depth
-1:05 — Ground-truth landmark validation (optional)
-1:20 — Batch mode: folder of scans → three CSVs
-```
-
----
+> **Research prototype.** Measurements and classifications support research review; this is not a certified medical device. See [validation scope](#validation-philosophy) and [limitations](#limitations).
 
 ## Overview
 
-This project turns a single 3D CBCT scan into a quantitative, explainable transverse-skeletal measurement — no manual landmarking required.
+This project connects automatic **3D CBCT tooth segmentation** with geometric analysis of the four first molars. It estimates furcation-based center-of-resistance (CR) landmarks, measures bilateral widths in millimetres, and reports the **Yonsei Transverse Index** with per-tooth quality checks.
 
-A user uploads a CBCT scan through a **Streamlit web interface**. From there:
+The workflow supports a **Streamlit interface** and **direct notebook batch processing**. Ground-truth landmarks are optional: they are used for validation, not required for inference.
 
-```text
-CBCT Scan
-   │
-   ├── NIfTI (.nii / .nii.gz)
-   └── DICOM (.dcm / ZIP) ── auto-converted to NIfTI
-          │
-          ▼
-   nnU-Net v2 + ToothFairy2 model
-   Dense multi-label segmentation (32 permanent teeth)
-          │
-          ▼
-   Full-mask restoration to the ORIGINAL CBCT grid
-   (nearest-neighbour, so labels stay discrete integers)
-          │
-          ▼
-   First-molar identification (handedness-corrected labels)
-          │
-          ▼
-   Per-tooth 3D physical-space analysis (molar_cr, revision 2)
-   • PCA long-axis estimation        • Anatomical root-count guard
-   • Cross-sectional topology sweep  • Convex-hull webbing centroid
-   • Skeleton cross-check            • Confidence scoring
-          │
-          ▼
-   Bilateral transverse widths (mm)
-   • Maxillary width = |UR6_CR − UL6_CR|
-   • Mandibular width = |LR6_CR − LL6_CR|
-          │
-          ▼
-   Yonsei Transverse Index  +  classification
-          │
-          ▼
-   Visualization, per-tooth QC table, optional GT validation, CSV export
+| Segment | Measure | Review |
+| :--- | :--- | :--- |
+| ToothFairy2 + nnU-Net v2 generate a multi-label tooth mask. | PCA-guided furcation analysis locates bilateral first-molar landmarks in physical space. | Image overlays, confidence flags, and CSV exports make each result inspectable. |
+
+## Pipeline in Action
+
+The six figures below and above are the project's existing output images. **Click any figure to open it at full resolution.**
+
+### 01 · Tooth segmentation
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <a href="./fig1-segmentation-fdi-labels.png"><img src="./fig1-segmentation-fdi-labels.png" alt="Axial CBCT slice with color-coded tooth segmentation and dense model label IDs" width="420"></a><br>
+      <sub><b>Figure 1 · Segmentation on the scan</b><br>Color-coded tooth masks overlaid on the CBCT.</sub>
+    </td>
+    <td align="center" width="50%">
+      <a href="./fig2-segmentation-arch-isolated.png"><img src="./fig2-segmentation-arch-isolated.png" alt="Isolated arch segmentation against a black background, showing a separate color for each tooth" width="420"></a><br>
+      <sub><b>Figure 2 · Isolated arch</b><br>Individual tooth labels ready for geometric analysis.</sub>
+    </td>
+  </tr>
+</table>
+
+The displayed numeric IDs are the model's dense segmentation labels, not FDI tooth numbers.
+
+### 02 · Check the overlay
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <a href="./fig3-sagittal-overlay-445.png"><img src="./fig3-sagittal-overlay-445.png" alt="Sagittal CBCT slice 445 with colored predicted tooth masks overlaid on the grayscale scan" width="420"></a><br>
+      <sub><b>Figure 3 · Sagittal slice 445</b><br>Visual inspection of the segmentation.</sub>
+    </td>
+    <td align="center" width="50%">
+      <a href="./fig4-sagittal-overlay-309.png"><img src="./fig4-sagittal-overlay-309.png" alt="Sagittal CBCT slice 309 with colored predicted tooth masks overlaid on the grayscale scan" width="420"></a><br>
+      <sub><b>Figure 4 · Sagittal slice 309</b><br>A second view of mask alignment.</sub>
+    </td>
+  </tr>
+</table>
+
+### 03 · Inspect the furcation estimate
+
+<p align="center">
+  <a href="./fig5-furcation-diagnostics.png"><img src="./fig5-furcation-diagnostics.png" alt="Furcation diagnostics showing a crown-to-root cross-section sweep, convex-hull webbing centroid, skeleton cross-check, and per-tooth metadata" width="1000"></a>
+</p>
+
+**Figure 5 · From root separation to a 3D landmark.** The highlighted cross-section contains three separated roots. The webbing centroid supplies the furcation estimate, which is back-projected into patient coordinates and checked against the tooth skeleton.
+
+| Diagnostic | Shown in this example |
+| :--- | :--- |
+| Root-count rule | `exact:3` — three expected roots found |
+| Furcation depth | `7.96 mm` |
+| Confidence | `medium` — no root-side skeleton branch available for comparison |
+| Measurement | [Figure 6](./fig6-transverse-width-cr.png) shows the bilateral maxillary width: **39.56 mm** |
+
+Figure 6 retains its original left/right label annotations. For the documented corrected mapping, see [Reference Tables](#reference-tables); exchanging bilateral side names does not change their distance.
+
+## How It Works
+
+```mermaid
+flowchart TD
+    A["CBCT scan · NIfTI or DICOM volume"] --> B["Tooth segmentation · nnU-Net v2 / ToothFairy2"]
+    B --> C["Restore mask to the original scan grid"]
+    C --> D["First-molar analysis · PCA + root topology"]
+    D --> E["Furcation-based CR landmarks + quality checks"]
+    E --> F["Bilateral widths in millimetres"]
+    F --> G["Yonsei index · overlays · CSV results"]
+    classDef input fill:#eff6ff,stroke:#2563eb,color:#172554;
+    classDef analysis fill:#f0fdfa,stroke:#0d9488,color:#134e4a;
+    classDef output fill:#fdf2f8,stroke:#db2777,color:#831843;
+    class A input;
+    class B,C,D,E analysis;
+    class F,G output;
 ```
 
-The pipeline does **not require ground-truth landmarks for inference** — GT CSVs are only used, optionally, for validation and cohort-level agreement statistics.
+Every geometric calculation uses **physical patient coordinates**, transformed through the scan's NIfTI affine. PCA supplies a local tooth frame; cross-sectional root topology supplies the furcation estimate.
+
+```text
+Maxillary width  = ‖ CR(UR6) − CR(UL6) ‖₂
+Mandibular width = ‖ CR(LR6) − CR(LL6) ‖₂
+Yonsei index    = Maxillary width − Mandibular width
+```
+
+## Key Features
+
+| Capability | What it provides |
+| :--- | :--- |
+| **Automatic tooth segmentation** | Dense multi-label masks restored to the original CBCT grid. |
+| **Anatomically guided localization** | Expected root counts, a crown guard, and persistence checks along the tooth axis. |
+| **Explainable quality control** | Root-count rules, skeleton agreement, confidence, and furcation depth for each molar. |
+| **Optional landmark validation** | Image CS / Patient CS CSV support with coordinate mapping and tooth-landing checks. |
+| **Batch processing** | Per-case CSV checkpoints, resume support, and automatic landmark-file discovery. |
+| **Existing-mask reuse** | The fast notebook can validate and reuse saved masks, avoiding repeated segmentation when suitable masks are available. |
+| **Cohort evaluation** | CCC, ICC(2,1), and Bland–Altman summaries when enough validated cases are available. |
 
 ---
 
-## Key Features
+<details>
+<summary><b>Explore segmentation, geometry, classification, and validation methods</b></summary>
 
 ### 🔬 1. Automatic 3D Tooth Segmentation
 
@@ -93,34 +147,17 @@ It accepts:
 
 - NIfTI volumes (`.nii`, `.nii.gz`)
 - DICOM folders and DICOM ZIP archives
-- Individual DICOM slices
+- Complete multi-file DICOM series or single-file multi-frame 3D DICOM volumes
 - Automatic DICOM → NIfTI conversion (SimpleITK)
-- Invivo `.inv` project packages (batch mode only — see below)
+- DICOM scan folders nested inside Invivo `.inv` package directories (batch mode)
 
 nnU-Net predicts on its own internal resampled grid; the app then **restores the segmentation to the original uploaded CBCT's shape and affine** using nearest-neighbour resampling, so every downstream measurement — and the file you can download — lives on the same grid as the scan you uploaded.
 
-<p align="center">
-  <img src="docs/images/fig1-segmentation-fdi-labels.png" alt="Full-arch axial segmentation with FDI tooth numbering" width="640">
-</p>
-
-**Figure 1 — Complete multi-label segmentation.** An axial slice through the model's dense 1–32 label map, each tooth numbered and colour-coded by quadrant. This is the raw output the rest of the pipeline reasons over: no landmark, mesh, or measurement exists yet — only a discrete per-voxel tooth ID.
-
-<p align="center">
-  <img src="docs/images/fig2-segmentation-arch-isolated.png" alt="Isolated arch segmentation, one colour per tooth" width="520">
-</p>
-
-**Figure 2 — Isolated arch mask.** The same kind of multi-label output at a different axial level, shown against a black background with one colour per tooth. Because every tooth already carries a distinct integer label straight out of the model, no separate instance-segmentation or clustering step is needed — `process_case` simply masks the volume by label value (`data == lbl`).
+See [Figures 1 and 2](#pipeline-in-action) for the multi-label segmentation.
 
 **Verifying the segmentation before trusting a measurement.** The app also overlays predicted labels directly on the grayscale CBCT so a mis-segmentation is visible immediately, rather than silently propagating into a wrong width:
 
-<table align="center">
-<tr>
-<td align="center"><img src="docs/images/fig3-sagittal-overlay-445.png" alt="Sagittal overlay, slice 445" width="360"><br><sub>Figure 3 — posterior segment</sub></td>
-<td align="center"><img src="docs/images/fig4-sagittal-overlay-309.png" alt="Sagittal overlay, slice 309" width="360"><br><sub>Figure 4 — first-molar / premolar region</sub></td>
-</tr>
-</table>
-
-**Figures 3 & 4 — Sagittal segmentation-overlay checks.** Predicted labels (colour) are blended over the normalized grayscale CBCT (`render_measurement_figure` uses the same 1st/99th-percentile clipping shown here) at two different slice levels. This is the same visual sanity check a clinician would do manually — confirming the mask actually sits on bone/tooth structure — surfaced automatically as a figure instead of requiring the user to scroll through slices by hand.
+See [Figures 3 and 4](#pipeline-in-action) for sagittal overlay checks.
 
 ### 🧭 PCA-Based 3D Tooth Orientation
 
@@ -148,10 +185,6 @@ PCA gives a **geometric** coordinate system, not the final anatomical answer: cr
 ### 🔎 PCA-Guided Furcation Search
 
 Once a tooth has a coordinate frame, `_find_furcation_3d` sweeps along `v1` in `step_mm`-sized slabs (0.4 mm, adaptively widened so it's never finer than the voxel size projected onto `v1`). At each slab, foreground voxels are projected onto `(v2, v3)`, rasterised on a sub-voxel grid, and connected-component-labelled to count how many separate roots are visible at that level.
-
-<p align="center">
-  <img src="docs/images/fig5-furcation-diagnostics.png" alt="Furcation search diagnostics: cross-section sweep, convex-hull webbing, skeleton cross-check" width="900">
-</p>
 
 **Figure 5 — Furcation-localization diagnostics for a maxillary first molar (label 6).** This is the pipeline's internal reasoning made visible, panel by panel:
 
@@ -212,11 +245,7 @@ Maxillary width  = ‖ CR(UR6) − CR(UL6) ‖₂
 Mandibular width = ‖ CR(LR6) − CR(LL6) ‖₂
 ```
 
-<p align="center">
-  <img src="docs/images/fig6-transverse-width-cr.png" alt="Bilateral maxillary transverse width measured between two first-molar CR points" width="680">
-</p>
-
-**Figure 6 — Bilateral transverse-width measurement in physical space.** The two maxillary first-molar masks, plotted directly in patient millimetre coordinates (not voxel indices), with each tooth's estimated CR marked by a star and labelled with its arch position and underlying segmentation label. The line joining the two stars **is** the measurement the app reports — in this example, **39.56 mm**, with the title also confirming the 3-rooted furcation rule fired (`rule_used == exact:3`). Plotting the masks, the labels, the CR points, and the inter-CR distance together in one coordinate frame makes the number directly traceable back to the anatomy that produced it.
+See [Figure 6](./fig6-transverse-width-cr.png) for the example maxillary width of **39.56 mm**.
 
 All measurements are reported in **millimetres**.
 
@@ -248,7 +277,7 @@ This matters because the *index* only tells you whether the two arches match eac
 The interface accepts **both** OEM landmark exports for a scan — the **Image CS** file and the **Patient CS** file — and validates predictions against them without fitting any free parameters when the grids correspond:
 
 - Parses both landmark CSVs independently
-- Matches landmarks to first-molar labels by universal tooth code (16/26/46/36), so it's agnostic to which label numbers are configured
+- Matches landmarks to first-molar labels by FDI tooth code (16/26/46/36), so it's agnostic to which label numbers are configured
 - **Zero-parameter mapping (primary path):** since the OEM landmarks are digitised on the same physical grid as the scan, an Image-CS value maps to a voxel index by pure division by voxel spacing, then through the scan's own affine — no fitting involved
 - **Landing check:** every mapped GT point must land within 8 voxels (~2.4 mm) of its own tooth's label in the segmentation before its error is trusted; a point landing on the *wrong* tooth (e.g. a mirrored contralateral assignment, ~40 mm away) is caught here rather than silently averaged in
 - **Frame-recovery fallback:** only engaged when zero-parameter mapping can't be used (grid mismatch, re-oriented import) — recovers a rigid transform from the first-molar landmarks themselves
@@ -268,7 +297,7 @@ Once **3 or more** validated cases have accumulated, `batch_cohort_stats.csv` re
 
 ### 📁 8. Batch Processing
 
-A folder of scans — NIfTI, DICOM ZIPs, DICOM folders, or **Invivo `.inv` project packages** (each package is auto-resolved to one case by picking its largest DICOM payload and ignoring small scout/TMJ series) — is processed end-to-end, writing:
+A folder of scans — NIfTI, DICOM ZIPs, DICOM folders, or **DICOM folders nested inside Invivo `.inv` packages** (the largest candidate scan volume is attempted first) — is processed end-to-end, writing:
 
 ```text
 batch_results.csv        # one row per case: widths, index, diagnosis, per-tooth QC flags
@@ -283,17 +312,115 @@ The batch engine is **crash-safe by design**:
 - Failed cases are simply retried on the next run
 - Landmark CSVs sitting next to (or in the parent of) a case are attached automatically, matched by case ID when a folder holds several cases
 
----
-
-## 🎬 Pipeline in Action
-
-All six figures above are real pipeline output — not mockups — generated directly by the functions described in the [Code Walkthrough](#-code-walkthrough) below: `_find_furcation_3d`'s internal diagnostics for Figure 5, and the bilateral-CR plotting logic for Figure 6, with Figures 1–4 coming straight from the restored nnU-Net segmentation. Two pieces of the live Streamlit UI — the upload panel and the results dashboard — aren't captured as screenshots yet; see [Streamlit Interface](#streamlit-interface) below for what they contain and add them to `docs/images/` when you have them.
+</details>
 
 ---
 
-## 🧩 Code Walkthrough
+## Running the Project
 
-`app.py` is **one self-contained file** (4,545 lines) — no `import pipeline`, no `import molar_cr`. The Colab notebook's `%%writefile app.py` cell writes it, so `streamlit run app.py` needs nothing else. It is organised into three clearly marked sections; the breakdown below follows that same structure.
+**Repository contents:** this public repository currently contains the README files and six figures. The notebook, generated `app.py`, and model weights are not included in this checkout.
+
+### Google Colab · direct batch processing
+
+With `CBCT_Width_Fast_Reuse_Existing_MasksFINAL.ipynb` available locally:
+
+1. Upload the notebook to [Google Colab](https://colab.research.google.com/) and open it.
+2. Run the dependency cell. If it requests a runtime restart, restart before continuing.
+3. Mount Google Drive, then run the cell that writes `app.py`.
+4. For cases needing fresh segmentation, configure the selected device and download the ToothFairy2 weights. A GPU runtime is the intended route for new inference.
+5. Set `BATCH_ROOT` to the folder containing the actual scan volumes and choose the batch output paths.
+6. Run the configuration cell, followed by the final direct-batch cell. No public app URL is needed.
+
+```python
+REUSE_EXISTING_MASKS = True
+FORCE_RERUN = False
+SAVE_SEG = True
+```
+
+Existing masks are checked against the prepared scan's shape, affine, and tooth-label values before reuse. If every needed mask is available, the measurement batch does not require model weights or CUDA. Keep case IDs unique and reuse only masks from the corresponding scans with the same label mapping; geometry checks alone do not establish patient or model identity.
+
+Completed cases can resume from existing result CSVs. After a runtime reset, set `RESUME_CSV_DIR` to the previous batch's Drive output folder if you want to restore those results. Existing-mask reuse itself does not require a previous results CSV.
+
+### Local Streamlit interface
+
+After generating `app.py` from the notebook and preparing its dependencies and model environment:
+
+```bash
+streamlit run app.py
+```
+
+### Supported inputs and outputs
+
+| Input | Notes |
+| :--- | :--- |
+| `.nii` / `.nii.gz` | Complete 3D NIfTI scans. |
+| DICOM folders / ZIPs | Complete slice series, including nested scan folders. |
+| Single `.dcm` | Must contain a complete multi-frame 3D scan; a single 2D slice is insufficient. |
+| Invivo exports | Use exported DICOM data, including DICOM folders inside `.inv` package directories. A standalone `.inv` project file is not a scan volume. |
+| Landmark CSVs | Optional `ImageCS` / `PatientCS` exports for validation. |
+
+| Output | Contents |
+| :--- | :--- |
+| `batch_results.csv` | Per-case widths, index, classifications, quality flags, and timing/reuse metadata. |
+| `batch_landmarks.csv` | Predicted landmarks, mapped ground truth, and localization errors. |
+| `batch_cohort_stats.csv` | Agreement summaries when at least three validated cases are available. |
+| `<case_id>_FULL_MASK.nii.gz` | Full multi-label segmentation, when saved; actual paths are logged. |
+
+
+---
+
+## Streamlit Interface
+
+<details>
+<summary><b>Explore the settings, upload panel, and results dashboard</b></summary>
+
+The Streamlit interface exposes the full pipeline through a browser, without writing code.
+
+**Sidebar — Settings**
+- Compute device (`cuda` / `cpu`) and nnU-Net fold selector
+- **Diagnostic cut-offs** expander — every threshold from the [Reference Tables](#reference-tables) above is a live, editable `st.number_input`, not a hard-coded constant
+- **First-molar label mapping** expander — the four label IDs are editable, with the handedness-correction rationale shown inline as UI copy
+- Model status (auto-detects whether the ToothFairy2 weights are already installed, with a one-click download otherwise)
+
+**Main panel**
+- File uploader accepting `.nii`, `.nii.gz`, DICOM `.zip`, or a multi-file DICOM selection
+- Live progress log while staging → segmenting → restoring the grid → measuring
+- **Predicted transverse widths** and **Transverse diagnosis** — the Yonsei Index, category, and per-arch sub-classification
+- **Per-tooth detail** table — voxel count, roots found/expected, rule used, furcation depth, confidence, and the raw CR coordinate for every measured tooth, plus an automatic warning banner if any tooth fell back to `relaxed:>=2`
+- **Predicted CR coordinates** table shown in three frames side by side (native patient mm, and the same point reprojected to image/voxel indices) so a predicted landmark can be checked against a ground-truth table in whichever frame it uses
+- **Ground-truth landmark validation** — dual CSV uploaders (Image CS / Patient CS) with the zero-parameter validation described above
+- **Batch mode** expander — point it at a folder and process every case in place, with live per-case progress and CSV downloads
+
+</details>
+
+---
+
+## Validation Philosophy
+
+A major focus of this project is **measurement validity, not just producing a number.** The validation workflow explicitly distinguishes:
+
+```text
+Coordinate-frame mismatch?
+        ↓
+Can the frames be reconciled (zero-parameter, or recovered)?
+        ↓
+Does the mapped landmark land on its intended tooth?
+        ↓
+If valid → calculate localization error
+```
+
+This exists to prevent a common failure mode in 3D medical-image evaluation: mistaking a coordinate-system mismatch for genuine model localization error.
+
+**Being precise about validation scope:** on the one scan currently verified end-to-end with dual-CS ground truth, the zero-parameter landmark error across the four first-molar CRs was **mean 1.63 mm, max 2.30 mm**. Cohort-level statistics (CCC, ICC(2,1), Bland–Altman) only compute once **3 or more** GT-carrying cases have been processed through batch mode — as of writing, that is a target for the validation cohort, not yet a completed result. Reporting the mechanism (zero fitted parameters, explicit landing checks) alongside the current sample size, rather than only the headline error number, is the point of this section.
+
+---
+
+## Code Walkthrough
+
+<details>
+<summary><b>Explore the implementation: geometry, orchestration, and UI</b></summary>
+
+`app.py` is **one self-contained file** — no `import pipeline`, no `import molar_cr`. The Colab notebook's `%%writefile app.py` cell writes it, so `streamlit run app.py` needs nothing else. It is organised into three clearly marked sections; the breakdown below follows that same structure.
 
 ### Section 1 — `molar_cr`: furcation / center-of-resistance analysis
 
@@ -370,7 +497,7 @@ Connected components below `min_component_area_mm2` (0.5 mm² — smaller than a
 </details>
 
 <details>
-<summary><b>The furcation search itself — <code>_find_furcation_3d</code> (the core algorithm, ~350 lines)</b></summary>
+<summary><b>The furcation search itself — <code>_find_furcation_3d</code> (the core algorithm)</b></summary>
 
 <br>
 
@@ -471,7 +598,7 @@ For each arch that produced a width, this renders an axial CT slice (percentile-
 
 <br>
 
-`_discover_batch_cases` walks a root folder and classifies every case it finds — NIfTI, DICOM ZIP, DICOM folder, or an Invivo `.inv` project package (resolved by picking the largest embedded DICOM series and ignoring small scout/TMJ studies, with the native `*Config.inv` volume as a last-resort fallback) — and auto-attaches any landmark CSVs sitting alongside it.
+`_discover_batch_cases` walks a root folder and classifies every case it finds — NIfTI, DICOM ZIP, DICOM folder, or an Invivo `.inv` project package (resolved from contained DICOM scan folders; the fast notebook requires actual scan volumes) — and auto-attaches any landmark CSVs sitting alongside it.
 
 `_run_batch` processes the list case-by-case, **flushing `batch_results.csv` and `batch_landmarks.csv` to disk after every single case** rather than at the end, and skips any case ID already marked `status == "ok"` in an existing results file on the next run. This means a Colab disconnect mid-batch loses at most the one case in flight.
 
@@ -483,20 +610,25 @@ The UI section wires everything above into `st.sidebar` settings, a file uploade
 
 ### The Colab notebook
 
-The `.ipynb` has 13 cells and is designed to be run top-to-bottom on an **A100** runtime:
+The notebook organizes setup and execution into the following stages. The fast reuse version runs its batch directly in Colab:
 
 | Cell | Purpose |
 |---|---|
 | `1 · Install dependencies` | Installs the CUDA-12.4 PyTorch build, `nnunetv2`, Streamlit, and pins `numpy==2.0.2` / `scipy==1.14.1` / `scikit-image==0.24.0` **last**, force-reinstalled, to repair any half-upgraded numeric stack from a previous run. Includes a self-check that raises a clear "restart the runtime now" error if the reinstall happened under a kernel that already had the old versions loaded. |
-| `1b · Mount Google Drive` | Only needed for batch mode; mounts Drive and reports what scan types it finds in the configured folder. |
-| `2 · Write the app` | The `%%writefile app.py` cell — all 4,545 lines described above. |
+| `1b · Mount Google Drive` | Needed when scans or saved masks are on Drive; mounts Drive and reports what scan types it finds in the configured folder. |
+| `2 · Write the app` | The `%%writefile app.py` cell writes the self-contained application. |
 | `3 · Download the segmentation model` | One-time ~1 GB fetch from Zenodo; skips automatically if already present. |
-| `Troubleshooting` | Covers the two most common failure modes: a tunnel/proxy that never finishes loading, and out-of-order cell execution. |
+| `Troubleshooting` | Covers dependency restarts, scan paths, DICOM input requirements, and rejected mask candidates. |
 | `5 · Direct batch run` | Loads *only* the pure functions and constants from `app.py` (everything before `st.set_page_config`) via `exec`, and runs the batch engine with no Streamlit server, tunnel, or browser at all — the fallback for restrictive networks. |
+
+</details>
 
 ---
 
-## 📎 Reference Tables
+## Reference Tables
+
+<details>
+<summary><b>View confidence levels, root-count rules, and first-molar labels</b></summary>
 
 **Confidence levels** (`ToothCR.confidence`)
 
@@ -524,9 +656,11 @@ The `.ipynb` has 13 cells and is designed to be run top-to-bottom on an **A100**
 | LR6 — mandibular right | 22 | 2 |
 | LL6 — mandibular left | 30 | 2 |
 
+</details>
+
 ---
 
-## 🛠 Technology Stack
+## Technology Stack
 
 | Component | Technology |
 |---|---|
@@ -545,96 +679,31 @@ The `.ipynb` has 13 cells and is designed to be run top-to-bottom on an **A100**
 
 ---
 
-## Running the Project
-
-### Option 1 — Google Colab (recommended)
-
-1. Open the notebook in Google Colab.
-2. **Runtime → Change runtime type → A100 GPU**, then Save.
-3. **Runtime → Run all.**
-4. If cell 1 asks you to restart (a repaired numpy/scipy install), do **Runtime → Restart runtime**, then **Runtime → Run all** again — the reinstall persists, so the second pass is quick.
-5. Mount Google Drive (cell `1b`) if your scans live there — needed for batch mode.
-6. The launch cell prints a public `https://…trycloudflare.com` (or ngrok) URL — open it and upload a scan.
-7. Keep the last cell running to keep the app online; every run prints a **fresh** URL.
-
-The notebook generates a single self-contained `app.py`, so the Streamlit application never depends on separate local pipeline modules.
-
-### Option 2 — Local Streamlit
-
-After preparing the model environment (nnU-Net weights under `nnUNet_results/Dataset121_ToothFairy2_Teeth`):
-
-```bash
-streamlit run app.py
-```
-
-### Option 3 — Batch mode without a browser
-
-If a restrictive network can't complete the tunnel handshake, skip the launch cells entirely and run **section 5 · Direct batch run** — it loads the same batch engine straight out of `app.py` and writes the same three CSVs with no Streamlit server involved.
-
----
-
-## Streamlit Interface
-
-The live app exposes the full pipeline through a browser, without writing code.
-
-**Sidebar — Settings**
-- Compute device (`cuda` / `cpu`) and nnU-Net fold selector
-- **Diagnostic cut-offs** expander — every threshold from the [Reference Tables](#-reference-tables) above is a live, editable `st.number_input`, not a hard-coded constant
-- **First-molar label mapping** expander — the four label IDs are editable, with the handedness-correction rationale shown inline as UI copy
-- Model status (auto-detects whether the ToothFairy2 weights are already installed, with a one-click download otherwise)
-
-**Main panel**
-- File uploader accepting `.nii`, `.nii.gz`, DICOM `.zip`, or a multi-file DICOM selection
-- Live progress log while staging → segmenting → restoring the grid → measuring
-- **Predicted transverse widths** and **Transverse diagnosis** — the Yonsei Index, category, and per-arch sub-classification
-- **Per-tooth detail** table — voxel count, roots found/expected, rule used, furcation depth, confidence, and the raw CR coordinate for every measured tooth, plus an automatic warning banner if any tooth fell back to `relaxed:>=2`
-- **Predicted CR coordinates** table shown in three frames side by side (native patient mm, and the same point reprojected to image/voxel indices) so a predicted landmark can be checked against a ground-truth table in whichever frame it uses
-- **Ground-truth landmark validation** — dual CSV uploaders (Image CS / Patient CS) with the zero-parameter validation described above
-- **Batch mode** expander — point it at a folder and process every case in place, with live per-case progress and CSV downloads
-
-> 📸 Two screenshots aren't captured yet: the upload/configuration screen and the results dashboard in full. Add them as `docs/images/interface-upload.png` and `docs/images/interface-results.png` and they'll render right here.
-
----
-
-## Example Output
+## Project Structure
 
 ```text
-Maxillary transverse width  : XX.XX mm
-Mandibular transverse width : XX.XX mm
-
-Yonsei Transverse Index     : XX.XX mm
-
-Diagnosis:
-Normal transverse skeletal relationship
+CBCT-Transverse-Basal-Bone-Width-Analysis-3D-image/
+├── README.md                              # project overview and visual guide
+├── README(2).md                           # alternate README
+├── README_portfolio_final.md              # earlier portfolio README
+├── fig1-segmentation-fdi-labels.png
+├── fig2-segmentation-arch-isolated.png
+├── fig3-sagittal-overlay-445.png
+├── fig4-sagittal-overlay-309.png
+├── fig5-furcation-diagnostics.png
+└── fig6-transverse-width-cr.png
 ```
 
-The exact values depend on the input CBCT scan — see Figure 6 above for a real measurement (39.56 mm, maxillary, 3-rooted rule).
+The figures are stored alongside `README.md`, so the image links use repository-relative paths. Notebook-generated code, scan data, model checkpoints, and result CSVs are separate from this documentation checkout.
 
 ---
 
-## Validation Philosophy
+## Engineering Log
 
-A major focus of this project is **measurement validity, not just producing a number.** The validation workflow explicitly distinguishes:
+<details>
+<summary><b>View the development history</b></summary>
 
-```text
-Coordinate-frame mismatch?
-        ↓
-Can the frames be reconciled (zero-parameter, or recovered)?
-        ↓
-Does the mapped landmark land on its intended tooth?
-        ↓
-If valid → calculate localization error
-```
-
-This exists to prevent a common failure mode in 3D medical-image evaluation: mistaking a coordinate-system mismatch for genuine model localization error.
-
-**Being precise about validation scope:** on the one scan currently verified end-to-end with dual-CS ground truth, the zero-parameter landmark error across the four first-molar CRs was **mean 1.63 mm, max 2.30 mm**. Cohort-level statistics (CCC, ICC(2,1), Bland–Altman) only compute once **3 or more** GT-carrying cases have been processed through batch mode — as of writing, that is a target for the validation cohort, not yet a completed result. Reporting the mechanism (zero fitted parameters, explicit landing checks) alongside the current sample size, rather than only the headline error number, is the point of this section.
-
----
-
-## 🗓️ Engineering Log
-
-A condensed history of the pipeline's correctness fixes, most recent first:
+A condensed history from the earlier application revisions, most recent first. The fast notebook's current input and reuse behavior is described in [Running the Project](#running-the-project).
 
 | Version | Change |
 |---|---|
@@ -645,49 +714,11 @@ A condensed history of the pipeline's correctness fixes, most recent first:
 | **final5_6** | **Left/right handedness correction** for the DICOM→NIfTI LPS→RAS flip; introduced zero-parameter ground-truth mapping as the primary validation path; automatic per-case handedness re-verification |
 | **molar_cr revision 2** | Furcation search now requires the tooth's *exact* anatomical root count (3 maxillary / 2 mandibular) instead of stopping at the first 2-component split, with a crown guard against occlusal-cusp false positives; webbing region bounded by a true convex hull instead of an orientation-dependent morphological closing |
 
----
-
-## Project Structure
-
-```text
-CBCT-Transverse-Width/
-│
-├── README.md
-├── app.py
-├── CBCT_Width_Colab.ipynb
-│
-├── docs/
-│   ├── demo.mp4                              # add your screen recording
-│   └── images/
-│       ├── fig1-segmentation-fdi-labels.png       ✅ included
-│       ├── fig2-segmentation-arch-isolated.png    ✅ included
-│       ├── fig3-sagittal-overlay-445.png          ✅ included
-│       ├── fig4-sagittal-overlay-309.png          ✅ included
-│       ├── fig5-furcation-diagnostics.png         ✅ included
-│       ├── fig6-transverse-width-cr.png           ✅ included
-│       ├── interface-upload.png                   ⬜ add your own
-│       └── interface-results.png                  ⬜ add your own
-│
-├── examples/
-│   └── README.md
-│
-├── results/
-│   └── README.md
-│
-└── requirements.txt
-```
-
-For a public repository, avoid committing:
-
-- Patient CBCT scans
-- DICOM files
-- Patient identifiers
-- Ground-truth files containing identifiable information
-- Large model checkpoints when they're available from the original public release
+</details>
 
 ---
 
-## ⚠️ Limitations & Honest Caveats
+## Limitations
 
 - **This is a research and engineering project, not a certified medical device**, and is not a substitute for professional clinical assessment.
 - The `relaxed:>=2` fallback (used only when a maxillary molar's roots never resolve into all 3 components) carries a known outward/buccal bias — it is reported per tooth precisely so it can be reviewed rather than trusted silently.
@@ -720,3 +751,11 @@ Rather than staying a research notebook, the pipeline is packaged into an intera
 The furcation-centre CR convention follows the **Yonsei transverse analysis** (Koo et al., *Korean J Orthod* 2017; 47:167–175), shown by Zhang et al. (*AJODO* 2023; 164:5–13) to have the highest inter-examiner reliability among the three main CBCT-based transverse analyses (Yonsei, Penn, BU). The recent deep-learning study of Dai et al. (*BMC Oral Health* 2024; 24:1091) also targets the furcation centre as the CR proxy. Biomechanical corroboration comes from Gandhi et al. (*AJODO* 2021; 160:442–450), whose finite-element analysis on 50 maxillary first molars localised the true biomechanical CR close to the trifurcation; Viecilli et al. (*AJODO* 2013; 143:163–172) and Dathe et al. (*J Dent Biomech* 2013; 4:1758736013499770) further show that a strict 3D CR "point" doesn't exist for a geometrically asymmetric tooth — three non-intersecting axes of resistance define a small CR *volume*, making the furcation centre a well-justified, low-variance surrogate.
 
 ---
+
+## Author
+
+**[Basma Tarek](https://github.com/Basma2753)**
+
+Medical image analysis · 3D geometry · Research software
+
+[Back to top](#top)
