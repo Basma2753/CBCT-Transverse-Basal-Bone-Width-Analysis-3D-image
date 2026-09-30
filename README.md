@@ -45,7 +45,7 @@ The workflow supports a **Streamlit interface** and **direct notebook batch proc
 
 ## Pipeline in Action
 
-The six figures below and above are the project's existing output images. **Click any figure to open it at full resolution.**
+Explore the segmentation figures, measurement results, and application screenshots. **Click any figure to open it at full resolution.**
 
 ### 01 · Tooth segmentation
 
@@ -95,6 +95,14 @@ The displayed numeric IDs are the model's dense segmentation labels, not FDI too
 | Measurement | [Figure 6](./fig6-transverse-width-cr.png) shows the bilateral maxillary width: **39.56 mm** |
 
 Figure 6 retains its original left/right label annotations. For the documented corrected mapping, see [Reference Tables](#reference-tables); exchanging bilateral side names does not change their distance.
+
+### 04 · Inspect the molar in 3D
+
+<p align="center">
+  <a href="./fig7-3d-molar-furcation.png"><img src="./fig7-3d-molar-furcation.png" alt="3D UR6 tooth mesh for case170, showing the pipeline furcation point in red, the dashed long axis, and x, y, z coordinates in millimetres" width="1000"></a>
+</p>
+
+**Figure 7 · 3D molar and furcation landmark.** The supplied viewer screenshot shows the UR6 surface mesh, the pipeline's furcation point in red, and the dashed long axis. The coordinate tooltip provides the selected point's position in millimetres. This is a static capture of the rotatable 3D view.
 
 ## How It Works
 
@@ -318,7 +326,7 @@ The batch engine is **crash-safe by design**:
 
 ## Running the Project
 
-**Repository contents:** this public repository currently contains the README files and six figures. The notebook, generated `app.py`, and model weights are not included in this checkout.
+**Repository contents:** this public repository currently contains the README files and eight figures/screenshots. The notebook, generated `app.py`, and model weights are not included in this checkout.
 
 ### Google Colab · direct batch processing
 
@@ -370,6 +378,12 @@ streamlit run app.py
 ---
 
 ## Streamlit Interface
+
+<p align="center">
+  <a href="./fig8-streamlit-width-interface.png"><img src="./fig8-streamlit-width-interface.png" alt="Streamlit interface showing CUDA device and fold settings, editable diagnostic cut-offs, and two axial CBCT views with highlighted first molars joined by yellow width-measurement lines" width="1100"></a>
+</p>
+
+**Figure 8 · Width measurements in the application.** Two axial views display the first-molar landmarks and the yellow lines connecting them. The sidebar exposes the compute device, nnU-Net fold, diagnostic cut-offs, and absolute arch-width reference ranges.
 
 <details>
 <summary><b>Explore the settings, upload panel, and results dashboard</b></summary>
@@ -691,7 +705,9 @@ CBCT-Transverse-Basal-Bone-Width-Analysis-3D-image/
 ├── fig3-sagittal-overlay-445.png
 ├── fig4-sagittal-overlay-309.png
 ├── fig5-furcation-diagnostics.png
-└── fig6-transverse-width-cr.png
+├── fig6-transverse-width-cr.png
+├── fig7-3d-molar-furcation.png
+└── fig8-streamlit-width-interface.png
 ```
 
 The figures are stored alongside `README.md`, so the image links use repository-relative paths. Notebook-generated code, scan data, model checkpoints, and result CSVs are separate from this documentation checkout.
@@ -724,7 +740,7 @@ A condensed history from the earlier application revisions, most recent first. T
 - The `relaxed:>=2` fallback (used only when a maxillary molar's roots never resolve into all 3 components) carries a known outward/buccal bias — it is reported per tooth precisely so it can be reviewed rather than trusted silently.
 - `confidence == 'medium'` does **not** mean a problem — it means the independent skeleton cross-check had no root-side branch point to compare against, which is a property of that tooth's skeleton, not of the estimate.
 - Cohort-level agreement statistics (CCC, ICC, Bland–Altman) require ≥3 ground-truth-carrying cases and are not meaningful below that count — see [Validation Philosophy](#validation-philosophy).
-- No 3D interactive mesh viewer is currently implemented in `app.py`; all visualizations are 2D Matplotlib figures rendered server-side (Figures 1–6 above are representative of everything the app currently produces).
+- README figures are static images. The 3D viewer shown in Figure 7 cannot be rotated inside the GitHub README; click the image to inspect the full-resolution screenshot.
 
 ---
 
