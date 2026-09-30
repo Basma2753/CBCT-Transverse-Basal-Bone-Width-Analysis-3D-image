@@ -1,0 +1,4 @@
+# Install the PyTorch build for your device first; see SETUP.md.
+# Not needed for measurement-only batches with valid existing masks.
+-r requirements.txt
+nnunetv2

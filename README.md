@@ -16,6 +16,7 @@
 </p>
 
 <p align="center">
+  <a href="#source-code">Source code</a> ·
   <a href="#pipeline-in-action">Image gallery</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#running-the-project">Getting started</a> ·
@@ -42,6 +43,21 @@ The workflow supports a **Streamlit interface** and **direct notebook batch proc
 | Segment | Measure | Review |
 | :--- | :--- | :--- |
 | ToothFairy2 + nnU-Net v2 generate a multi-label tooth mask. | PCA-guided furcation analysis locates bilateral first-molar landmarks in physical space. | Image overlays, confidence flags, and CSV exports make each result inspectable. |
+
+## Source Code
+
+The complete application and notebook are included in this repository.
+
+| Start here | Purpose |
+| :--- | :--- |
+| [**app.py**](./app.py) | Self-contained Streamlit app: segmentation, width analysis, validation, and batch processing. |
+| [**CBCT_Width_Analysis.ipynb**](./CBCT_Width_Analysis.ipynb) | Colab workflow with Drive mounting, model setup, and direct batch execution. |
+| [**SETUP.md**](./SETUP.md) | Installation, model paths, inputs, outputs, and troubleshooting. |
+| [requirements.txt](./requirements.txt) · [segmentation dependencies](./requirements-segmentation.txt) | Analysis/UI dependencies and the optional nnU-Net inference stack. |
+
+**[Open the notebook in Google Colab →](https://colab.research.google.com/github/Basma2753/CBCT-Transverse-Basal-Bone-Width-Analysis-3D-image/blob/main/CBCT_Width_Analysis.ipynb)**
+
+The notebook is the source of truth for the single-file app. After editing its `%%writefile app.py` cell, run `python export_app.py` to update the standalone copy; `python export_app.py --check` verifies that they match. The original analysis and attribution are retained. Example scan paths are generic, and saved notebook outputs have been cleared.
 
 ## Pipeline in Action
 
@@ -335,13 +351,13 @@ The batch engine is **crash-safe by design**:
 
 ## Running the Project
 
-**Repository contents:** this public repository currently contains the README files and nine figures/screenshots. The notebook, generated `app.py`, and model weights are not included in this checkout.
+Choose **Google Colab** for the direct batch workflow, or **Linux / WSL** for the local Streamlit interface. See [SETUP.md](./SETUP.md) for the full installation guide. Model weights and scan data are downloaded or supplied separately.
 
 ### Google Colab · direct batch processing
 
-With `CBCT_Width_Fast_Reuse_Existing_MasksFINAL.ipynb` available locally:
+Use the included [CBCT_Width_Analysis.ipynb](./CBCT_Width_Analysis.ipynb):
 
-1. Upload the notebook to [Google Colab](https://colab.research.google.com/) and open it.
+1. [Open the notebook in Colab](https://colab.research.google.com/github/Basma2753/CBCT-Transverse-Basal-Bone-Width-Analysis-3D-image/blob/main/CBCT_Width_Analysis.ipynb).
 2. Run the dependency cell. If it requests a runtime restart, restart before continuing.
 3. Mount Google Drive, then run the cell that writes `app.py`.
 4. For cases needing fresh segmentation, configure the selected device and download the ToothFairy2 weights. A GPU runtime is the intended route for new inference.
@@ -360,11 +376,14 @@ Completed cases can resume from existing result CSVs. After a runtime reset, set
 
 ### Local Streamlit interface
 
-After generating `app.py` from the notebook and preparing its dependencies and model environment:
+The app is already included. From a fresh **Python 3.11 or 3.12** environment, install the analysis/UI dependencies and launch it:
 
 ```bash
-streamlit run app.py
+python -m pip install -r requirements.txt
+python -m streamlit run app.py
 ```
+
+These commands support measurement with existing masks. For **new segmentation**, also install the correct PyTorch build, `requirements-segmentation.txt`, and the ToothFairy2 weights as described in [SETUP.md](./SETUP.md#new-segmentation-and-model-weights). Local batch runs should use explicit writable scan and output paths; the original defaults target Colab.
 
 ### Supported inputs and outputs
 
@@ -707,7 +726,13 @@ The notebook organizes setup and execution into the following stages. The fast r
 ```text
 CBCT-Transverse-Basal-Bone-Width-Analysis-3D-image/
 ├── README.md                              # project overview and visual guide
-├── README(2).md                           # alternate README
+├── SETUP.md                               # installation and usage
+├── app.py                                 # standalone Streamlit application
+├── CBCT_Width_Analysis.ipynb               # self-contained Colab notebook
+├── export_app.py                          # regenerate/check app from notebook
+├── requirements.txt                       # analysis and UI dependencies
+├── requirements-segmentation.txt          # optional nnU-Net inference stack
+├── .gitignore                             # exclude local data, weights, outputs
 ├── README_portfolio_final.md              # earlier portfolio README
 ├── fig1-segmentation-fdi-labels.png
 ├── fig2-segmentation-arch-isolated.png
@@ -720,7 +745,7 @@ CBCT-Transverse-Basal-Bone-Width-Analysis-3D-image/
 └── fig9-3d-molar-alternate-view.png
 ```
 
-The figures are stored alongside `README.md`, so the image links use repository-relative paths. Notebook-generated code, scan data, model checkpoints, and result CSVs are separate from this documentation checkout.
+The figures are stored alongside `README.md`, so the image links use repository-relative paths. Source code and setup files are included; scan data, model checkpoints, and generated results are excluded from version control.
 
 ---
 
