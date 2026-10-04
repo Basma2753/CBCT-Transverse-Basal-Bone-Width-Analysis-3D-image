@@ -46,3 +46,12 @@ CBCT_masks/
 batch_results.csv
 batch_landmarks.csv
 batch_cohort_stats.csv
+
+# Local package workspace and test artifacts
+.cbct-work/
+.coverage
+htmlcov/
+coverage.xml
+*.tmp
+*.part
+cohort_results.csv

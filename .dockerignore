@@ -1,0 +1,10 @@
+# Allow only source and build metadata into the image context.
+*
+!Dockerfile
+!pyproject.toml
+!requirements-lock.txt
+!README.md
+!app.py
+!src/
+!src/cbct_width/
+!src/cbct_width/*.py
