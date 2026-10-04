@@ -1,4 +1,3 @@
-# Install the PyTorch build for your device first; see SETUP.md.
-# Not needed for measurement-only batches with valid existing masks.
--r requirements.txt
-nnunetv2
+# Choose/install a hardware-appropriate PyTorch build first.
+# GPU inference dependencies are not covered by the CPU lock.
+.[ui,segmentation]

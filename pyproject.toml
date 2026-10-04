@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools==80.9.0", "wheel==0.45.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cbct-width"
+version = "0.2.0"
+description = "Physical-space first-molar furcation and transverse-width research toolkit"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+authors = [{name = "Basma Tarek"}]
+dependencies = [
+  "numpy==2.0.2", "scipy==1.14.1", "scikit-image==0.24.0",
+  "nibabel>=5.2,<6", "pandas>=2.2,<4", "SimpleITK>=2.3,<3", "pydicom>=3,<4",
+]
+
+[project.optional-dependencies]
+ui = ["streamlit>=1.40,<2", "matplotlib>=3.9,<4"]
+segmentation = ["nnunetv2>=2.5,<3"]
+dev = ["pytest>=8,<10", "pytest-cov>=5,<8", "build>=1,<2", "pyflakes>=3,<5"]
+
+[project.scripts]
+cbct-width = "cbct_width.cli:main"
+
+[project.urls]
+Repository = "https://github.com/Basma2753/CBCT-Transverse-Basal-Bone-Width-Analysis-3D-image"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
