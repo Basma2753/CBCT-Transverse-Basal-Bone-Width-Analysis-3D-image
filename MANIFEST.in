@@ -1,4 +1,4 @@
-include app.py SETUP.md CHANGELOG.md requirements*.txt Dockerfile .dockerignore
+include app.py SETUP.md requirements*.txt Dockerfile .dockerignore
 recursive-include docs *.md *.py *.gif
 recursive-include tests *.py
 include fig*.png
