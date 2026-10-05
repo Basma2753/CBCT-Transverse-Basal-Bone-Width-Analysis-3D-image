@@ -77,7 +77,7 @@ Dockerfile       CPU measurement/UI image; no embedded data or weights
 CBCT_Width_Analysis.ipynb   optional Colab frontend to the package
 ```
 
-The package is the source of truth. The notebook imports it and no longer generates `app.py`. See [CHANGELOG](CHANGELOG.md) for changes and [testing scope](docs/testing.md) for what is verified.
+The package is the source of truth. The notebook imports it and no longer generates `app.py`. See [testing scope](docs/testing.md) for what is verified.
 
 > **Research prototype — not a medical device.** Outputs require expert review and are not a substitute for clinical assessment. No regulatory compliance or clinical deployment readiness is claimed.
 
